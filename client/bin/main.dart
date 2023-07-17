@@ -44,7 +44,7 @@ void main([List<String>? args]) => runZonedGuarded(() async {
         i++;
       }
 
-      await Future<void>.delayed(const Duration(seconds: 30));
+      await Future<void>.delayed(const Duration(minutes: 5));
       io.exit(0);
     }, l.e);
 
@@ -52,13 +52,24 @@ void _makeRequests(_IsolateConfig config) => runZonedGuarded(() async {
       final client = http.Client();
       final futures = <Future<http.Response>>[];
       for (var i = 0; i < config.count; i++) {
-        futures.add(client.get(Uri.http('${config.address.host}:${config.port}', '/long-polling?duration=60000')));
+        futures.add(
+          client.get(
+            Uri.http(
+              '${config.address.host}:${config.port}',
+              '/long-polling',
+              <String, String>{'duration': '60000'},
+            ),
+          ),
+        );
         await Future<void>.delayed(const Duration(milliseconds: 5));
       }
       config.sendPort.send(true); // All requests sent
-      await Future.wait(futures);
+      final result = await Future.wait(futures);
+      for (final response in result) {
+        if (response.statusCode != 200) l.e('Request failed: ${response.statusCode} ${response.reasonPhrase}');
+      }
       config.sendPort.send('Isolate ${Isolate.current.debugName} completed ${config.count} requests.');
-      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(const Duration(seconds: 1));
       Isolate.exit();
     }, l.e);
 
