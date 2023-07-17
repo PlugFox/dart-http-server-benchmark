@@ -44,7 +44,7 @@ void main([List<String>? args]) => l.capture(
             await completer.future;
             i++;
           }
-          l.i('All isolates spawned.');
+
           await Future<void>.delayed(const Duration(minutes: 5));
           io.exit(0);
         }, l.e),
@@ -53,31 +53,36 @@ void main([List<String>? args]) => l.capture(
       outputInRelease: true,
     ));
 
-void _makeRequests(_IsolateConfig config) => runZonedGuarded(() async {
-      final client = http.Client();
-      final futures = <Future<http.Response>>[];
-      for (var i = 0; i < config.count; i++) {
-        futures.add(
-          client.get(
-            Uri.http(
-              '${config.address.host}:${config.port}',
-              '/long-polling',
-              <String, String>{'duration': '120000'},
-            ),
-          ),
-        );
-        await Future<void>.delayed(const Duration(milliseconds: 1));
-      }
-      config.sendPort.send(true); // All requests sent
-      l.i('Isolate ${Isolate.current.debugName} sent ${config.count} requests.');
-      final result = await Future.wait(futures);
-      for (final response in result) {
-        if (response.statusCode != 200) l.e('Request failed: ${response.statusCode} ${response.reasonPhrase}');
-      }
-      config.sendPort.send('Isolate ${Isolate.current.debugName} completed ${config.count} requests.');
-      await Future<void>.delayed(const Duration(seconds: 1));
-      Isolate.exit();
-    }, l.e);
+void _makeRequests(_IsolateConfig config) => l.capture(
+    () => runZonedGuarded(() async {
+          final client = http.Client();
+          final futures = <Future<http.Response>>[];
+          for (var i = 0; i < config.count; i++) {
+            futures.add(
+              client.get(
+                Uri.http(
+                  '${config.address.host}:${config.port}',
+                  '/long-polling',
+                  <String, String>{'duration': '120000'},
+                ),
+              ),
+            );
+            await Future<void>.delayed(const Duration(milliseconds: 2));
+          }
+          config.sendPort.send(true); // All requests sent
+          l.i('Isolate ${Isolate.current.debugName} sent ${config.count} requests.');
+          final result = await Future.wait(futures);
+          for (final response in result) {
+            if (response.statusCode != 200) l.e('Request failed: ${response.statusCode} ${response.reasonPhrase}');
+          }
+          config.sendPort.send('Isolate ${Isolate.current.debugName} completed ${config.count} requests.');
+          await Future<void>.delayed(const Duration(seconds: 1));
+          Isolate.exit();
+        }, l.e),
+    const LogOptions(
+      printColors: true,
+      outputInRelease: true,
+    ));
 
 ({
   io.InternetAddress address,
