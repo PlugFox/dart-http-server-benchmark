@@ -70,12 +70,12 @@ void _makeRequests(_IsolateConfig config) => l.capture(
             await Future<void>.delayed(const Duration(milliseconds: 2));
           }
           config.sendPort.send(true); // All requests sent
-          l.i('Isolate ${Isolate.current.debugName} sent ${config.count} requests.');
+          l.i('${Isolate.current.debugName} sent ${config.count} requests.');
           final result = await Future.wait(futures);
           for (final response in result) {
             if (response.statusCode != 200) l.e('Request failed: ${response.statusCode} ${response.reasonPhrase}');
           }
-          config.sendPort.send('Isolate ${Isolate.current.debugName} completed ${config.count} requests.');
+          config.sendPort.send('${Isolate.current.debugName} completed ${config.count} requests.');
           await Future<void>.delayed(const Duration(seconds: 1));
           Isolate.exit();
         }, l.e),
