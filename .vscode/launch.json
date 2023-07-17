@@ -1,0 +1,20 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "server",
+      "program": "bin/server.dart",
+      "cwd": "server/",
+      "request": "launch",
+      "type": "dart",
+      "env": {},
+      "args": [
+        "--address=127.0.0.1",
+        "--port=88",
+        "--isolates=24",
+        "--verbose=3",
+        "--environment=local"
+      ]
+    }
+  ]
+}
