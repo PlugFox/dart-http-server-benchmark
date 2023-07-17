@@ -10,9 +10,9 @@
       "env": {},
       "args": [
         "--address=127.0.0.1",
-        "--port=88",
+        "--port=8080",
         "--isolates=24",
-        "--count=10000"
+        "--count=2000"
       ]
     },
     {
@@ -24,7 +24,7 @@
       "env": {},
       "args": [
         "--address=127.0.0.1",
-        "--port=88",
+        "--port=8080",
         "--isolates=24",
         "--verbose=3",
         "--environment=local"
