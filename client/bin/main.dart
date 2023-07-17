@@ -57,11 +57,11 @@ void _makeRequests(_IsolateConfig config) => runZonedGuarded(() async {
             Uri.http(
               '${config.address.host}:${config.port}',
               '/long-polling',
-              <String, String>{'duration': '60000'},
+              <String, String>{'duration': '120000'},
             ),
           ),
         );
-        await Future<void>.delayed(const Duration(milliseconds: 5));
+        await Future<void>.delayed(const Duration(milliseconds: 1));
       }
       config.sendPort.send(true); // All requests sent
       final result = await Future.wait(futures);
