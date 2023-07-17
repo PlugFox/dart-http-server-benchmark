@@ -9,6 +9,7 @@ import 'package:benchmark_server/common/log_pipeline.dart';
 import 'package:benchmark_server/common/run_server.dart';
 import 'package:benchmark_server/routes/health_check.dart';
 import 'package:benchmark_server/routes/home.dart';
+import 'package:benchmark_server/routes/long_polling.dart';
 import 'package:benchmark_server/routes/not_found.dart';
 import 'package:shelf/shelf.dart' as shelf;
 import 'package:shelf/shelf_io.dart' as shelf_io;
@@ -39,4 +40,5 @@ Future<void> _serve(io.InternetAddress address, int port, [config]) async {
 
 final shelf.Handler $router = Router(notFoundHandler: $notFound)
   ..get('/', $home)
-  ..get('/health', $healthCheck);
+  ..get('/health', $healthCheck)
+  ..get('/long-polling', $longPolling);

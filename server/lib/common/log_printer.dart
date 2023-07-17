@@ -36,7 +36,7 @@ Null Function(
   LogLevel logLevel,
   DateTime dateTime,
 ) $sendToPort(SendPort port, int verboseLevel) => (message, logLevel, dateTime) {
-      if (verboseLevel > logLevel.level) {
+      if (verboseLevel >= logLevel.level) {
         port.send(LogMessage(
           date: dateTime,
           level: logLevel,
