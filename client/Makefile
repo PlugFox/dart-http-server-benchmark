@@ -10,10 +10,10 @@ codegen: get
 	@dart run build_runner build --delete-conflicting-outputs
 
 build: codegen
-	@dart compile exe bin/main.dart -o build/server
+	@dart compile exe bin/client.dart -o build/client
 
 run: build
-	@./build/server --address=127.0.0.1 --port=8080 --isolates=4
+	@./build/client --count=10000
 
 outdated:
 	@dart pub outdated --dev-dependencies --up-to-date --dependency-overrides --prereleases --show-all

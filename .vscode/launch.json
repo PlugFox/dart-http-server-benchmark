@@ -2,8 +2,22 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "client",
+      "program": "bin/main.dart",
+      "cwd": "client/",
+      "request": "launch",
+      "type": "dart",
+      "env": {},
+      "args": [
+        "--address=127.0.0.1",
+        "--port=88",
+        "--isolates=24",
+        "--count=500"
+      ]
+    },
+    {
       "name": "server",
-      "program": "bin/server.dart",
+      "program": "bin/main.dart",
       "cwd": "server/",
       "request": "launch",
       "type": "dart",
