@@ -6,7 +6,7 @@ import 'package:args/args.dart';
 import 'package:http/http.dart' as http;
 import 'package:l/l.dart';
 
-typedef _IsolateConfig = ({io.InternetAddress address, int port, int count});
+typedef _IsolateConfig = ({io.InternetAddress address, int port, int count, SendPort sendPort});
 
 void main([List<String>? args]) => runZonedGuarded(() async {
       final config = _parseArguments(args);
@@ -20,22 +20,45 @@ void main([List<String>? args]) => runZonedGuarded(() async {
 
       final payload = distributePayload(config.count, isolates);
       l.i('Sending $config.count requests to ${config.address.host}:${config.port} using $isolates isolates.');
+      var i = 0;
       for (final count in payload) {
-        Isolate.spawn<_IsolateConfig>(
+        final completer = Completer<void>();
+        final receivePort = ReceivePort()
+          ..listen((msg) {
+            switch (msg) {
+              case String msg:
+                l.s(msg); // Message from isolate
+              case true:
+                completer.complete(); // Spawned
+              default:
+                l.e('Unknown message: $msg');
+            }
+          });
+        await Isolate.spawn<_IsolateConfig>(
           _makeRequests,
-          (address: config.address, port: config.port, count: count),
-          debugName: 'Isolate $count',
+          (address: config.address, port: config.port, count: count, sendPort: receivePort.sendPort),
+          debugName: 'Isolate #$i',
           errorsAreFatal: true,
-        ).ignore();
+        );
+        await completer.future;
+        i++;
       }
+
+      await Future<void>.delayed(const Duration(seconds: 30));
+      io.exit(0);
     }, l.e);
 
 void _makeRequests(_IsolateConfig config) => runZonedGuarded(() async {
       final client = http.Client();
-      final futures = List<Future<void>>.generate(
-          config.count, (_) => client.get(Uri.http('${config.address.host}:${config.port}', '/long-polling')));
+      final futures = <Future<http.Response>>[];
+      for (var i = 0; i < config.count; i++) {
+        futures.add(client.get(Uri.http('${config.address.host}:${config.port}', '/long-polling?duration=60000')));
+        await Future<void>.delayed(const Duration(milliseconds: 5));
+      }
+      config.sendPort.send(true); // All requests sent
       await Future.wait(futures);
-      l.i('Requests completed.');
+      config.sendPort.send('Isolate ${Isolate.current.debugName} completed ${config.count} requests.');
+      await Future<void>.delayed(Duration.zero);
       Isolate.exit();
     }, l.e);
 
