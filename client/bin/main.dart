@@ -8,45 +8,50 @@ import 'package:l/l.dart';
 
 typedef _IsolateConfig = ({io.InternetAddress address, int port, int count, SendPort sendPort});
 
-void main([List<String>? args]) => runZonedGuarded(() async {
-      final config = _parseArguments(args);
-      final isolates = config.isolates.clamp(1, config.count);
-      List<int> distributePayload(int total, int isolates) {
-        final remainder = total % isolates;
-        final distribution = List<int>.filled(isolates, total ~/ isolates);
-        for (var i = 0; i < remainder; i++) distribution[i]++;
-        return distribution;
-      }
+void main([List<String>? args]) => l.capture(
+    () => runZonedGuarded(() async {
+          final config = _parseArguments(args);
+          final isolates = config.isolates.clamp(1, config.count);
+          List<int> distributePayload(int total, int isolates) {
+            final remainder = total % isolates;
+            final distribution = List<int>.filled(isolates, total ~/ isolates);
+            for (var i = 0; i < remainder; i++) distribution[i]++;
+            return distribution;
+          }
 
-      final payload = distributePayload(config.count, isolates);
-      l.i('Sending $config.count requests to ${config.address.host}:${config.port} using $isolates isolates.');
-      var i = 0;
-      for (final count in payload) {
-        final completer = Completer<void>();
-        final receivePort = ReceivePort()
-          ..listen((msg) {
-            switch (msg) {
-              case String msg:
-                l.s(msg); // Message from isolate
-              case true:
-                completer.complete(); // Spawned
-              default:
-                l.e('Unknown message: $msg');
-            }
-          });
-        await Isolate.spawn<_IsolateConfig>(
-          _makeRequests,
-          (address: config.address, port: config.port, count: count, sendPort: receivePort.sendPort),
-          debugName: 'Isolate #$i',
-          errorsAreFatal: true,
-        );
-        await completer.future;
-        i++;
-      }
-
-      await Future<void>.delayed(const Duration(minutes: 5));
-      io.exit(0);
-    }, l.e);
+          final payload = distributePayload(config.count, isolates);
+          l.i('Sending $config.count requests to ${config.address.host}:${config.port} using $isolates isolates.');
+          var i = 0;
+          for (final count in payload) {
+            final completer = Completer<void>();
+            final receivePort = ReceivePort()
+              ..listen((msg) {
+                switch (msg) {
+                  case String msg:
+                    l.s(msg); // Message from isolate
+                  case true:
+                    completer.complete(); // Spawned
+                  default:
+                    l.e('Unknown message: $msg');
+                }
+              });
+            await Isolate.spawn<_IsolateConfig>(
+              _makeRequests,
+              (address: config.address, port: config.port, count: count, sendPort: receivePort.sendPort),
+              debugName: 'Isolate #$i',
+              errorsAreFatal: true,
+            );
+            await completer.future;
+            i++;
+          }
+          l.i('All isolates spawned.');
+          await Future<void>.delayed(const Duration(minutes: 5));
+          io.exit(0);
+        }, l.e),
+    const LogOptions(
+      printColors: true,
+      outputInRelease: true,
+    ));
 
 void _makeRequests(_IsolateConfig config) => runZonedGuarded(() async {
       final client = http.Client();
@@ -64,6 +69,7 @@ void _makeRequests(_IsolateConfig config) => runZonedGuarded(() async {
         await Future<void>.delayed(const Duration(milliseconds: 1));
       }
       config.sendPort.send(true); // All requests sent
+      l.i('Isolate ${Isolate.current.debugName} sent ${config.count} requests.');
       final result = await Future.wait(futures);
       for (final response in result) {
         if (response.statusCode != 200) l.e('Request failed: ${response.statusCode} ${response.reasonPhrase}');
